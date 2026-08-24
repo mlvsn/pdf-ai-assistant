@@ -1,7 +1,4 @@
-# Environment
-.env
-
-# Python
+﻿# Python
 __pycache__/
 *.pyc
 
@@ -14,3 +11,6 @@ embeddings_cache.json
 
 # Temporary test files
 test_gemini.py
+
+# Environment variables
+.env
