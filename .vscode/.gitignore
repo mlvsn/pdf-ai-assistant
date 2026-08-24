@@ -1,0 +1,16 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Local generated files
+extracted_text.txt
+embeddings_cache.json
+
+# Private / copyrighted PDF
+اثر مرکب.pdf
+
+# Temporary test files
+test_gemini.py
