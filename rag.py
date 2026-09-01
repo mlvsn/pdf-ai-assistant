@@ -1,12 +1,10 @@
 from pypdf import PdfReader
-from google import genai
 import math
 import json
 import os
+import hashlib
+from io import BytesIO
 
-
-PDF_PATH = "اثر مرکب.pdf"
-CACHE_PATH = "embeddings_cache.json"
 
 EMBEDDING_MODEL = "gemini-embedding-001"
 LLM_MODEL = "gemini-3.6-flash"
@@ -16,12 +14,17 @@ CHUNK_OVERLAP = 100
 TOP_K = 3
 
 
-def load_pdf(pdf_path):
-    pdf = PdfReader(pdf_path)
+def load_pdf(pdf_bytes):
+    pdf = PdfReader(
+        BytesIO(pdf_bytes)
+    )
 
     pages = []
 
-    for page_number, page in enumerate(pdf.pages, start=1):
+    for page_number, page in enumerate(
+        pdf.pages,
+        start=1
+    ):
         text = page.extract_text() or ""
 
         if text.strip():
@@ -42,7 +45,10 @@ def create_chunks(pages):
 
         while start < len(words):
             end = start + CHUNK_SIZE
-            chunk_text = " ".join(words[start:end])
+
+            chunk_text = " ".join(
+                words[start:end]
+            )
 
             if chunk_text.strip():
                 chunks.append({
@@ -50,91 +56,183 @@ def create_chunks(pages):
                     "text": chunk_text
                 })
 
-            start += CHUNK_SIZE - CHUNK_OVERLAP
+            start += (
+                CHUNK_SIZE
+                - CHUNK_OVERLAP
+            )
 
     return chunks
 
 
-def create_embeddings(client, chunks):
+def create_embeddings(
+    client,
+    chunks
+):
     embeddings = []
 
     for chunk in chunks:
-        result = client.models.embed_content(
-            model=EMBEDDING_MODEL,
-            contents=chunk["text"]
+        result = (
+            client.models.embed_content(
+                model=EMBEDDING_MODEL,
+                contents=chunk["text"]
+            )
         )
 
-        embeddings.append(result.embeddings[0].values)
+        embeddings.append(
+            result.embeddings[0].values
+        )
 
     return embeddings
 
 
-def load_or_create_embeddings(client, chunks):
-    if os.path.exists(CACHE_PATH):
-        with open(CACHE_PATH, "r", encoding="utf-8") as file:
-            cached_data = json.load(file)
+def get_cache_path(pdf_bytes):
+    pdf_hash = hashlib.md5(
+        pdf_bytes
+    ).hexdigest()
+
+    return (
+        f"embeddings_cache_{pdf_hash}.json"
+    )
+
+
+def load_or_create_embeddings(
+    client,
+    chunks,
+    pdf_bytes
+):
+    cache_path = get_cache_path(
+        pdf_bytes
+    )
+
+    if os.path.exists(cache_path):
+
+        with open(
+            cache_path,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            cached_data = json.load(
+                file
+            )
 
         if (
-            len(cached_data) == len(chunks)
+            len(cached_data)
+            == len(chunks)
+
             and all(
-                cached_data[i]["text"] == chunks[i]["text"]
-                for i in range(len(chunks))
+                cached_data[i]["text"]
+                == chunks[i]["text"]
+
+                for i in range(
+                    len(chunks)
+                )
             )
         ):
+
             return [
                 item["embedding"]
-                for item in cached_data
+
+                for item
+                in cached_data
             ]
 
-    embeddings = create_embeddings(client, chunks)
+    embeddings = create_embeddings(
+        client,
+        chunks
+    )
 
     cache_data = []
 
-    for chunk, embedding in zip(chunks, embeddings):
+    for chunk, embedding in zip(
+        chunks,
+        embeddings
+    ):
+
         cache_data.append({
             "page": chunk["page"],
             "text": chunk["text"],
             "embedding": embedding
         })
 
-    with open(CACHE_PATH, "w", encoding="utf-8") as file:
-        json.dump(cache_data, file)
+    with open(
+        cache_path,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            cache_data,
+            file
+        )
 
     return embeddings
 
 
-def cosine_similarity(a, b):
+def cosine_similarity(
+    a,
+    b
+):
     dot_product = sum(
-        x * y for x, y in zip(a, b)
+        x * y
+        for x, y
+        in zip(a, b)
     )
 
     magnitude_a = math.sqrt(
-        sum(x * x for x in a)
+        sum(
+            x * x
+            for x in a
+        )
     )
 
     magnitude_b = math.sqrt(
-        sum(y * y for y in b)
+        sum(
+            y * y
+            for y in b
+        )
     )
 
-    if magnitude_a == 0 or magnitude_b == 0:
+    if (
+        magnitude_a == 0
+        or magnitude_b == 0
+    ):
         return 0
 
-    return dot_product / (
-        magnitude_a * magnitude_b
+    return (
+        dot_product
+        /
+        (
+            magnitude_a
+            * magnitude_b
+        )
     )
 
 
-def retrieve(client, question, chunks, embeddings):
-    result = client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=question
+def retrieve(
+    client,
+    question,
+    chunks,
+    embeddings
+):
+    result = (
+        client.models.embed_content(
+            model=EMBEDDING_MODEL,
+            contents=question
+        )
     )
 
-    question_embedding = result.embeddings[0].values
+    question_embedding = (
+        result.embeddings[0].values
+    )
 
     scored_chunks = []
 
-    for chunk, embedding in zip(chunks, embeddings):
+    for chunk, embedding in zip(
+        chunks,
+        embeddings
+    ):
+
         score = cosine_similarity(
             question_embedding,
             embedding
@@ -154,20 +252,29 @@ def retrieve(client, question, chunks, embeddings):
     return scored_chunks[:TOP_K]
 
 
-def generate_answer(client, question, retrieved_chunks):
+def generate_answer(
+    client,
+    question,
+    retrieved_chunks
+):
     context_parts = []
 
     for item in retrieved_chunks:
+
         context_parts.append(
-            f"[صفحه {item['page']}]\n{item['text']}"
+            f"[صفحه {item['page']}]\n"
+            f"{item['text']}"
         )
 
-    context = "\n\n".join(context_parts)
+    context = "\n\n".join(
+        context_parts
+    )
 
     prompt = f"""
 تو یک دستیار پاسخ‌گویی درباره یک PDF هستی.
 
 فقط بر اساس Context زیر پاسخ بده.
+
 اگر اطلاعات کافی برای پاسخ وجود ندارد، بگو:
 «اطلاعات کافی در PDF پیدا نشد.»
 
@@ -185,21 +292,38 @@ Context:
 - اطلاعاتی خارج از Context اضافه نکن.
 """
 
-    response = client.interactions.create(
-        model=LLM_MODEL,
-        input=prompt
+    response = (
+        client.interactions.create(
+            model=LLM_MODEL,
+            input=prompt
+        )
     )
 
-    return response.output_text.strip()
+    return (
+        response.output_text
+        .strip()
+    )
 
 
-def answer_question(client, question):
-    pages = load_pdf(PDF_PATH)
-    chunks = create_chunks(pages)
+def answer_question(
+    client,
+    question,
+    pdf_bytes
+):
+    pages = load_pdf(
+        pdf_bytes
+    )
 
-    embeddings = load_or_create_embeddings(
-        client,
-        chunks
+    chunks = create_chunks(
+        pages
+    )
+
+    embeddings = (
+        load_or_create_embeddings(
+            client,
+            chunks,
+            pdf_bytes
+        )
     )
 
     retrieved_chunks = retrieve(
@@ -209,8 +333,27 @@ def answer_question(client, question):
         embeddings
     )
 
-    return generate_answer(
+    answer = generate_answer(
         client,
         question,
         retrieved_chunks
+    )
+
+    source_pages = sorted(
+        {
+            item["page"]
+            for item
+            in retrieved_chunks
+        }
+    )
+
+    sources = "، ".join(
+        str(page)
+        for page
+        in source_pages
+    )
+
+    return (
+        f"{answer}"
+        f"\n\nمنبع: صفحات {sources}"
     )

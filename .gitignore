@@ -4,10 +4,10 @@ __pycache__/
 
 # Local generated files
 extracted_text.txt
-embeddings_cache.json
+embeddings_cache*.json
 
-# Private / copyrighted PDF
-اثر مرکب.pdf
+# Private / copyrighted PDFs
+*.pdf
 
 # Temporary test files
 test_gemini.py
