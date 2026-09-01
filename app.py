@@ -19,17 +19,13 @@ st.write(
 )
 
 
-api_key = os.getenv(
-    "GEMINI_API_KEY"
-)
+api_key = os.getenv("GEMINI_API_KEY")
 
 
 if not api_key:
-
     st.error(
         "GEMINI_API_KEY پیدا نشد."
     )
-
     st.stop()
 
 
@@ -50,19 +46,15 @@ if uploaded_file:
         f"فایل آپلود شد: {uploaded_file.name}"
     )
 
-    pdf_bytes = (
-        uploaded_file.getvalue()
-    )
+    pdf_bytes = uploaded_file.getvalue()
 
     question = st.text_area(
         "سؤال خود را بنویسید:",
         placeholder=(
-            "مثلاً: "
-            "خلاصه این فایل را "
+            "مثلاً: خلاصه این فایل را "
             "در سه خط بگو"
         )
     )
-
 
     if st.button("Ask AI"):
 
@@ -74,24 +66,31 @@ if uploaded_file:
 
         else:
 
-            with st.spinner(
-                "در حال پیدا کردن پاسخ..."
-            ):
+            try:
 
-                answer = answer_question(
-                    client,
-                    question,
-                    pdf_bytes
+                with st.spinner(
+                    "در حال پیدا کردن پاسخ..."
+                ):
+
+                    answer = answer_question(
+                        client,
+                        question,
+                        pdf_bytes
+                    )
+
+                st.subheader("پاسخ")
+                st.write(answer)
+
+            except RuntimeError as error:
+
+                st.error(str(error))
+
+            except Exception:
+
+                st.error(
+                    "خطایی در پردازش درخواست رخ داد. "
+                    "لطفاً دوباره تلاش کنید."
                 )
-
-            st.subheader(
-                "پاسخ"
-            )
-
-            st.write(
-                answer
-            )
-
 
 else:
 
