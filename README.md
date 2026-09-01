@@ -184,3 +184,11 @@ This project is not only about building a working application. Its goal is also 
 ## License
 
 No license has been added yet.
+## Screenshots
+
+![Upload and question](screenshot1.png)
+
+![Answer with source](screenshot2.png)
+
+![Full view](screenshot3.png)
+
