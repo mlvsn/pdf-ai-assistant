@@ -1,4 +1,5 @@
 ﻿import os
+import base64
 import streamlit as st
 from google import genai
 from rag import answer_question
@@ -9,129 +10,233 @@ st.set_page_config(
     layout="centered"
 )
 
+def load_font_base64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+font_base64 = load_font_base64("fonts/iranyekan.woff")
+
 st.markdown(
-    """
+    f"""
     <style>
-    .stApp {
-        background-color: #0d0d0f !important;
-    }
-    .block-container {
+    @font-face {{
+        font-family: 'IranYekan';
+        src: url(data:font/woff;base64,{font_base64}) format('woff');
+        font-weight: normal;
+        font-style: normal;
+        font-display: block;
+    }}
+
+    * {{
+        font-family: 'IranYekan', sans-serif !important;
+    }}
+
+    .stApp {{
+        background: radial-gradient(circle at 50% 0%, #14141a 0%, #0a0a0c 60%) !important;
+    }}
+    .block-container {{
         max-width: 800px;
-        padding-top: 2.5rem;
-    }
-    h1, .stApp h1 {
+        padding-top: 2rem;
+    }}
+
+    .title-wrap {{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        margin-bottom: 0.3rem;
+    }}
+    .title-icon {{
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #3b9dff, #1e5fd9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        box-shadow: 0 4px 14px rgba(59,157,255,0.35);
+    }}
+    h1, .stApp h1 {{
         color: #ffffff !important;
         text-align: center;
-        font-size: 2.2rem !important;
-        margin-bottom: 0.2rem !important;
-    }
-    .subtitle {
+        font-size: 2.1rem !important;
+        margin: 0 !important;
+    }}
+    .subtitle {{
         text-align: center;
         color: #9a9aa0 !important;
         margin-bottom: 1.8rem;
         font-size: 1rem;
         direction: rtl;
-    }
-    div[data-testid="stFileUploader"] {
-        border: none !important;
+    }}
+
+    div[data-testid="stFileUploader"] {{
+        border: 1px solid #2a2a30 !important;
         border-radius: 20px;
         padding: 1.2rem;
-        background-color: #1c1c1f !important;
-    }
-    div[data-testid="stFileUploader"] section {
-        background-color: #1c1c1f !important;
+        background: linear-gradient(180deg, #1c1c22, #17171b) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+        transition: border-color 0.15s ease;
+    }}
+    div[data-testid="stFileUploader"]:hover {{
+        border-color: #3b9dff55 !important;
+    }}
+    div[data-testid="stFileUploader"] section {{
+        background: transparent !important;
         border: none !important;
-    }
+    }}
     div[data-testid="stFileUploader"] label,
     div[data-testid="stFileUploader"] p,
     div[data-testid="stFileUploader"] span,
-    div[data-testid="stFileUploader"] small {
+    div[data-testid="stFileUploader"] small {{
         color: #d0d0d5 !important;
         direction: rtl;
-    }
-    div[data-testid="stFileUploader"] button {
-        background-color: #3b9dff !important;
-        color: #ffffff !important;
+    }}
+
+    .st-key-pdf_upload button[kind="secondary"] {{
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+        background: linear-gradient(135deg, #3b9dff, #1e7bfd) !important;
         border: none !important;
-        border-radius: 12px !important;
-    }
-    .stTextArea label {
+        box-shadow: 0 4px 14px rgba(59,157,255,0.3) !important;
+        color: transparent !important;
+        font-size: 0 !important;
+        position: relative !important;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }}
+    .st-key-pdf_upload button[kind="secondary"] * {{
+        display: none !important;
+    }}
+    .st-key-pdf_upload button[kind="secondary"]::after {{
+        content: "↑" !important;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -52%);
+        color: #ffffff !important;
+        font-size: 22px !important;
+        font-weight: bold;
+        line-height: 1;
+    }}
+    .st-key-pdf_upload button[kind="secondary"]:hover {{
+        transform: scale(1.06);
+        box-shadow: 0 6px 18px rgba(59,157,255,0.45) !important;
+    }}
+
+    .stTextArea label {{
         color: #ffffff !important;
         direction: rtl;
         font-weight: 500;
-    }
-    .stTextArea textarea {
+    }}
+    .stTextArea div[data-baseweb="textarea"] {{
+        border-radius: 18px !important;
+        border: 1px solid #2a2a30 !important;
+        background: linear-gradient(180deg, #1c1c22, #17171b) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }}
+    .stTextArea div[data-baseweb="textarea"]:focus-within {{
+        border-color: #3b9dff !important;
+        box-shadow: 0 0 0 3px rgba(59,157,255,0.25), 0 4px 20px rgba(0,0,0,0.35) !important;
+        outline: none !important;
+    }}
+    .stTextArea textarea {{
         direction: rtl;
         text-align: right;
-        background-color: #1c1c1f !important;
+        background: transparent !important;
         color: #ffffff !important;
-        border-radius: 18px !important;
         border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
         padding: 1rem !important;
         caret-color: #3b9dff;
-    }
-    .stTextArea textarea::placeholder {
+    }}
+    .stTextArea textarea::placeholder {{
         color: #6e6e75 !important;
-    }
-    .stTextArea textarea:focus {
-        box-shadow: 0 0 0 2px #3b9dff !important;
-    }
-    .stButton > button {
+    }}
+
+    .stButton > button {{
         width: 100%;
-        background-color: #3b9dff !important;
+        background: linear-gradient(135deg, #3b9dff, #1e7bfd) !important;
         color: #ffffff !important;
         font-weight: 600;
+        font-size: 1rem;
         border-radius: 14px !important;
-        padding: 0.7rem 0 !important;
+        padding: 0.85rem 1rem !important;
         border: none !important;
         direction: rtl;
-        transition: background-color 0.15s ease;
-    }
-    .stButton > button:hover {
-        background-color: #1e8bfd !important;
+        white-space: nowrap;
+        letter-spacing: 0.2px;
+        box-shadow: 0 4px 14px rgba(59,157,255,0.3);
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }}
+    .stButton > button:hover {{
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(59,157,255,0.45);
         color: #ffffff !important;
-    }
-    .stAlert, div[data-testid="stNotification"] {
+    }}
+    .stButton > button:active {{
+        transform: translateY(0px);
+    }}
+
+    .stAlert, div[data-testid="stNotification"] {{
         direction: rtl;
         text-align: right;
-        background-color: #1c1c1f !important;
+        background: linear-gradient(180deg, #1c1c22, #17171b) !important;
         color: #ffffff !important;
         border-radius: 14px !important;
-        border: none !important;
-    }
-    .stAlert p, div[data-testid="stNotification"] p {
+        border: 1px solid #2a2a30 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    }}
+    .stAlert p, div[data-testid="stNotification"] p {{
         color: #ffffff !important;
-    }
-    .answer-card, .answer-card * {
+    }}
+
+    .answer-card, .answer-card * {{
         color: #ffffff !important;
-    }
-    .answer-card {
-        background-color: #1c1c1f !important;
+    }}
+    .answer-card {{
+        background: linear-gradient(180deg, #1c1c22, #17171b) !important;
         border-radius: 20px;
         padding: 1.5rem;
-        border: none;
+        border: 1px solid #2a2a30;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.35);
         margin-top: 1.2rem;
         line-height: 1.9;
         direction: rtl;
         text-align: right;
-    }
-    .source-badge {
+    }}
+    .source-badge {{
         display: inline-block;
         margin-top: 1rem;
-        background-color: #12294a !important;
-        color: #3b9dff !important;
+        background: linear-gradient(135deg, #12294a, #0d1f3d) !important;
+        color: #6cb4ff !important;
         padding: 0.4rem 0.9rem;
         border-radius: 999px;
         font-size: 0.85rem;
         direction: rtl;
         font-weight: 500;
-    }
+        box-shadow: 0 2px 10px rgba(59,157,255,0.15);
+    }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-st.title("📄 PDF AI Assistant")
+st.markdown(
+    """
+    <div class="title-wrap">
+        <div class="title-icon">📄</div>
+        <h1>PDF AI Assistant</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 st.markdown(
     '<div class="subtitle">سوال خود را درباره محتوای PDF بپرسید و پاسخ را همراه با منبع دریافت کنید</div>',
     unsafe_allow_html=True
@@ -146,7 +251,8 @@ client = genai.Client(api_key=api_key)
 
 uploaded_file = st.file_uploader(
     "PDF خود را آپلود کنید",
-    type=["pdf"]
+    type=["pdf"],
+    key="pdf_upload"
 )
 
 if uploaded_file:
@@ -190,4 +296,4 @@ if uploaded_file:
             except Exception:
                 st.error("خطایی در پردازش درخواست رخ داد. لطفا دوباره تلاش کنید.")
 else:
-    st.info("برای شروع یک فایل PDF آپلود کنید.")
+    st.info("برای شروع، یک فایل PDF آپلود کنید.")
