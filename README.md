@@ -186,9 +186,11 @@ This project is not only about building a working application. Its goal is also 
 No license has been added yet.
 ## Screenshots
 
-![Upload and question](screenshot1.png)
+![Home page](screenshot1.png)
 
-![Answer with source](screenshot2.png)
+![PDF uploaded and question asked](screenshot2.png)
 
-![Full view](screenshot3.png)
+![Answer part 1](screenshot3.png)
+
+![Answer with source](screenshot4.png)
 
